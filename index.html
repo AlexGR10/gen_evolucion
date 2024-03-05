@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación de Evolución Genética</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1f1f1f;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 36px;
+            background: linear-gradient(to right, #00ff91, #00ff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: linear-gradient(to right, #00ffaa, #04f304);
+            color: #1f1f1f;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #004422;
+        }
+
+        pre {
+            background-color: #222;
+            color: #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .nota {
+            font-size: 14px;
+            color: #ccc;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Simulación de Evolución Genética</h1>
+        <button onclick="iniciarSimulacion()">Iniciar Simulación</button>
+        <button onclick="borrarSalida()">Borrar Salida</button>
+        <button onclick="reiniciarSimulacion()">Reiniciar Simulación</button>
+        <pre id="output"></pre>
+        <div class="nota">
+            Esta simulación modela la evolución de una población de genes a lo largo de generaciones. Utiliza técnicas
+            como el cruce y la mutación para simular la selección natural y observar cómo cambian los genes a lo largo
+            del tiempo.
+        </div>
+    </div>
+
+    <script>
+
+        var matriz = [];
+        var matrizHijo = [];
+
+        function iniciarSimulacion() {
+            // Mostrar fórmulas de aptitud disponibles
+            var f1 = "programador: 30*x^2 - 23*x + 5";
+            var f2 = "bombero: -4*(x-1)^2 - 0.5*x + 10";
+            var generacionActual = 1;
+
+            var n = parseInt(prompt("Ingrese el número de individuos por generación:"));
+            var numGeneraciones = parseInt(prompt("Ingrese el número de generaciones:"));
+            var formulaElegida = prompt("Seleccione una fórmula de aptitud (ingrese el número correspondiente):");
+            var formula;
+
+            // Asignar la fórmula elegida
+            if (formulaElegida === "1") {
+                formula = "30*x^2 - 23*x + 5";
+            } else if (formulaElegida === "2") {
+                formula = "-4*(x-1)^2 - 0.5*x + 10";
+            } else {
+                alert("Opción no válida. Se utilizará la primera fórmula por defecto.");
+                formula = "30*x^2 - 23*x + 5";
+            }
+
+            var genes = Math.pow(2, n); // Número total de posibles gen
+
+            document.getElementById('output').innerHTML += `<br>Número de individuos por generación (2^n): ${genes}<br>`;
+            document.getElementById('output').innerHTML += `Número de generaciones: ${numGeneraciones}<br>`;
+            document.getElementById('output').innerHTML += `Fórmula de Aptitud Elegida: ${formula} <br>`;
+
+            while (generacionActual <= numGeneraciones) {
+                if (generacionActual === 1) {
+                    document.getElementById('output').innerHTML += `<br>Generación: ${generacionActual}<br>`;
+                    matriz = generarYImprimirMatriz(genes);
+                    matrizHijo = [];
+                    convertirADecimal(matriz);
+                    var ordenAp = evalAptitud(matriz, formula);
+
+                } else {
+                    document.getElementById('output').innerHTML += `<br>Generación: ${generacionActual}<br>`;
+                    convertirMatrizHijoAMatriz(matrizHijo);
+                    matrizHijo = [];
+                    convertirADecimal(matriz);
+                    var ordenAp = evalAptitud(matriz, formula);
+                }
+                generacionActual++;
+            }
+        }
+
+        function evalAptitud(matriz, formula) {
+            var resultados = [];
+            var totalAptitud = 0;
+            var output = document.getElementById('output');
+
+            for (var i = 0; i < matriz.length; i++) {
+                // Excluir bits en posición 0 y 9
+                var bitsExcluidos = matriz[i].slice(1, -1).join('');
+                var valorAbsoluto = parseInt(bitsExcluidos, 2);
+
+                // Evaluar la fórmula de aptitud sustituyendo x con el valor decimal
+                var resultado = eval(formula.replace(/x/g, valorAbsoluto));
+
+                totalAptitud += resultado;
+
+                // Almacenar el resultado junto con el número de individuo
+                resultados.push({ "individuo": i + 1, "aptitud": resultado });
+            }
+
+            // Calcular y mostrar el promedio en la interfaz
+            var promedio = totalAptitud / matriz.length;
+            output.innerHTML += `<br>Promedio de Aptitud en esta generación: ${promedio.toFixed(2)}<br>`;
+
+            // Ordenar los resultados de mayor a menor aptitud
+            resultados.sort(function (a, b) {
+                return b.aptitud - a.aptitud;
+            });
+
+            // Crear la matrizCruce reorganizando los individuos de matriz según el orden de aptitud
+            var matrizCruce = resultados.map(result => matriz[result.individuo - 1]);
+
+            // Imprimir la matrizCruce
+            for (var i = 0; i < matrizCruce.length; i++) {
+                output.innerHTML += `Individuo ${resultados[i].individuo}: ${resultados[i].aptitud} [${matrizCruce[i].join(' ')}]<br>`;
+            }
+            output.innerHTML += `<br>`;
+            // Llamar a cruzamiento y pasarle la matrizCruce y los resultados
+            cruzamiento({ matrizCruce: matrizCruce, resultados: resultados });
+
+            // Retornar la matriz ordenada por aptitud
+            return { resultados, matrizCruce };
+        }
+
+        function cruzamiento(datosEvalAptitud) {
+            var output = document.getElementById('output');
+            var matrizCruce = datosEvalAptitud.matrizCruce;
+            var resultados = datosEvalAptitud.resultados;
+            var genes = matrizCruce[0].length - 2; // Descontar bits en posición 0 y 9
+            var canCruces = Math.floor(matrizCruce.length / 2);
+
+            // Cruzar el mejor con el segundo mejor, el mejor con el peor y asignar los demás a posiciones aleatorias
+            for (var i = 0; i < canCruces; i++) {
+                var padre1, padre2;
+
+                if (i === 0) {
+                    padre1 = resultados[0].individuo;
+                    padre2 = resultados[1].individuo;
+                } else if (i === 1) {
+                    padre1 = resultados[0].individuo;
+                    padre2 = resultados[resultados.length - 1].individuo;
+                } else {
+                    // Asignar posiciones aleatorias para los otros cruces
+                    var posiciones = obtenerPosicionesAleatorias(genes, resultados);
+                    padre1 = resultados[posiciones[0]].individuo;
+                    padre2 = resultados[posiciones[1]].individuo;
+                }
+
+                // Almacenar los genes de padre1 y padre2
+                var genPadre1 = matrizCruce[resultados.findIndex(item => item.individuo === padre1)].slice();
+                var genPadre2 = matrizCruce[resultados.findIndex(item => item.individuo === padre2)].slice();
+
+                // Imprimir la relación de cruces y los genes de los padres en la interfaz
+                output.innerHTML += `Cruce Individuo ${padre1} con Individuo ${padre2}<br>`;
+                output.innerHTML += `Genes del Individuo ${padre1}: [${genPadre1.join(' ')}]<br>`;
+                output.innerHTML += `Genes del Individuo ${padre2}: [${genPadre2.join(' ')}]<br>`;
+
+                // Crear los hijos en base a la posición de cruce (puntCruce)
+                var puntCruce = Math.floor(Math.random() * (genes - 1)) + 1; // Nueva posición de cruce en cada iteración
+                var genHijo1 = genPadre1.slice(0, puntCruce).concat(genPadre2.slice(puntCruce));
+                var genHijo2 = genPadre2.slice(0, puntCruce).concat(genPadre1.slice(puntCruce));
+
+                // Agregar los genes de los hijos a la matrizHijo
+                matrizHijo.push(genHijo1, genHijo2);
+
+                // Imprimir los genes de los hijos en la interfaz
+                output.innerHTML += `Hijo 1: [${genHijo1.join(' ')}]<br>`;
+                output.innerHTML += `Hijo 2: [${genHijo2.join(' ')}]<br>`;
+
+                // Imprimir la posición de corte después de cada cruce
+                output.innerHTML += `Posición para el cruce: ${puntCruce}<br>`;
+            }
+
+            // Llamar a mutacion y pasarle la matrizHijo
+            matrizHijo = mutacion(matrizHijo);
+        }
+
+        function convertirMatrizHijoAMatriz(matrizHijo) {
+            matriz = [];
+
+            // Copiar cada fila de la matrizHijo a la matriz
+            for (var i = 0; i < matrizHijo.length; i++) {
+                matriz.push(matrizHijo[i].slice()); // Usar slice() para copiar la fila
+            }
+
+            // Imprimir la nueva matriz en pantalla sin comas
+            var output = document.getElementById('output');
+            output.innerHTML += `<br>Matriz Generada con ${matrizHijo.length} individuos (después del cruzamiento y mutación):<br>`;
+            for (var i = 0; i < matrizHijo.length; i++) {
+                output.innerHTML += `Individuo ${i + 1} [${matrizHijo[i].join(' ')}]<br>`;
+            }
+
+            // Vaciar la matrizHijo
+            matrizHijo = [];
+
+            return matriz; // Devolver la matriz para usarla en la siguiente función
+        }
+
+        function mutacion(matrizHijo) {
+            var output = document.getElementById('output');
+            var genesPorIndividuo = matrizHijo[0].length;
+            var totalGenes = matrizHijo.length * genesPorIndividuo;
+            var cantMuta = Math.ceil(0.01 * totalGenes); // Calcula el 1% de totalGenes y redondea hacia arriba
+
+            // Imprimir la matrizHijo después de todos los cruces
+            output.innerHTML += `<br>Matriz Hijo:<br>`;
+            for (var i = 0; i < matrizHijo.length; i++) {
+                output.innerHTML += `[${matrizHijo[i].join(' ')}]<br>`;
+            }
+
+            output.innerHTML += `<br>Aplicando mutación en un total de ${totalGenes} genes:<br>`;
+            output.innerHTML += `Cantidad de genes a mutar (1% de totalGenes): ${cantMuta}<br>`;
+
+            // Mutar genes de manera aleatoria
+            for (var i = 0; i < cantMuta; i++) {
+                var fila = Math.floor(Math.random() * matrizHijo.length);
+                var columna = Math.floor(Math.random() * genesPorIndividuo);
+
+                // Cambiar el valor del gen seleccionado (0 a 1 o 1 a 0)
+                matrizHijo[fila][columna] = 1 - matrizHijo[fila][columna];
+            }
+
+            // Imprimir la matrizHijo después de la mutación
+            output.innerHTML += `<br>Matriz Hijo después de la mutación:<br>`;
+            for (var i = 0; i < matrizHijo.length; i++) {
+                output.innerHTML += `[${matrizHijo[i].join(' ')}]<br>`;
+            }
+
+            return matrizHijo; // Devolver la matrizHijo actualizada
+        }
+
+
+        function obtenerPosicionesAleatorias(genes, ordenAp) {
+            var posiciones = [];
+
+            for (var j = 0; j < 2; j++) {
+                var pos = Math.floor(Math.random() * ordenAp.length);
+
+                // Asegurarse de que no elija la posición de los mejores
+                while (posiciones.includes(pos)) {
+                    pos = Math.floor(Math.random() * ordenAp.length);
+                }
+
+                posiciones.push(pos);
+            }
+
+            return posiciones;
+        }
+
+        function generarYImprimirMatriz(genes) {
+            matriz = [];
+
+            // Crear la matriz
+            for (var i = 0; i < genes; i++) {
+                var fila = [];
+                for (var j = 0; j < 10; j++) {
+                    fila.push(Math.random() < 0.5 ? 0 : 1);
+                }
+                matriz.push(fila);
+            }
+
+            // Imprimir la matriz en pantalla sin comas
+            var output = document.getElementById('output');
+            output.innerHTML += `<br>Matriz Generada con ${genes} individuos:<br>`;
+            for (var i = 0; i < genes; i++) {
+                output.innerHTML += `Individuo ${i + 1} [${matriz[i].join(' ')}]<br>`;
+            }
+
+            return matriz; // Devolver la matriz para usarla en la siguiente función
+        }
+
+        function convertirADecimal(matriz) {
+            var output = document.getElementById('output');
+            output.innerHTML += `<br>Individuos en decimal (excluyendo bits en posición 0 y 9):<br>`;
+
+            for (var i = 0; i < matriz.length; i++) {
+                // Excluir bits en posición 0 y 9
+                var bitsExcluidos = matriz[i].slice(1, -1).join('');
+                var valorAbsoluto = parseInt(bitsExcluidos, 2);
+
+                var decimal = valorAbsoluto;
+
+                if (matriz[i][0] === 0) {
+                    decimal = -decimal; // Si el bit en la posición 0 es 0, cambiamos el signo del decimal
+                }
+
+                if (matriz[i][9] === 1) {
+                    decimal += 0.5; // Si el bit en la posición 9 es 1, sumamos 0.5 al decimal
+                }
+
+                output.innerHTML += `Individuo ${i + 1} [${decimal}]<br>`;
+            }
+        }
+
+        function borrarSalida() {
+            var output = document.getElementById('output');
+            output.innerHTML = '';
+        }
+
+        function reiniciarSimulacion() {
+            borrarSalida();
+            iniciarSimulacion(); // Avanzar el número de generaciones especificado por el usuario
+        }
+    </script>
+
+</body>
+
+</html>
